@@ -1,0 +1,76 @@
+@page "/diag"
+@using System.Net.Http
+@using System.Net.Http.Json
+
+<PageTitle>Diagnostics</PageTitle>
+
+<h1>Diagnostics</h1>
+
+<p>Checking application dependencies...</p>
+
+@if (diagnostics == null)
+{
+    <p>Loading diagnostics...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Dependency</th>
+                <th>Status</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var diag in diagnostics)
+            {
+                <tr>
+                    <td>@diag.CheckName</td>
+                    <td>
+                        @if (diag.IsSuccessful)
+                        {
+                            <span style="color: green;">Healthy</span>
+                        }
+                        else
+                        {
+                            <span style="color: red;">Unhealthy</span>
+                        }
+                    </td>
+                    <td>@diag.Details</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<div style="margin-top: 2em;">
+    <a href="/">Back to Home</a>
+</div>
+
+@inject HttpClient Http
+
+@code {
+    private List<DiagnosticResult>? diagnostics;
+
+    protected override async Task OnInitializedAsync()
+    {        try
+        {
+            diagnostics = await Http.GetFromJsonAsync<List<DiagnosticResult>>("api/Diagnostics");
+        }
+        catch (Exception ex)
+        {
+            // Handle error, maybe set a single diagnostic result indicating failure to fetch
+            diagnostics = new List<DiagnosticResult>
+            {
+                new DiagnosticResult { CheckName = "Diagnostic Service", IsSuccessful = false, Details = $"Error fetching diagnostics: {ex.Message}" }
+            };
+        }    }
+
+    public class DiagnosticResult
+    {
+        public string? CheckName { get; set; }
+        public bool IsSuccessful { get; set; }
+        public string? Details { get; set; }
+    }
+}

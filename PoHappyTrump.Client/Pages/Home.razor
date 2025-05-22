@@ -1,0 +1,69 @@
+@page "/"
+
+<PageTitle>PoHappyTrump</PageTitle>
+
+<h1>Trump's Positive Message Generator</h1>
+
+<p>Click the button below to get a positive Trump message, transformed by Azure OpenAI!</p>
+
+<button @onclick="GetMessage" disabled="@isLoading">Get Positive Message</button>
+
+@if (isLoading)
+{
+    <p>Loading...</p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color:red">@errorMessage</p>
+}
+else if (!string.IsNullOrEmpty(message))
+{
+    <div style="margin-top:1em; padding:1em; border:1px solid #ccc; border-radius:8px; background:#f9f9f9;">
+        <strong>Positive Message:</strong>
+        <p>@(new MarkupString(message))</p>
+    </div>
+}
+
+@code {
+    private string? message;
+    private string? errorMessage;
+    private bool isLoading = false;
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+
+    private async Task GetMessage()
+    {
+        isLoading = true;
+        errorMessage = null;
+        message = null;
+        try
+        {
+            // Use the injected HttpClient
+            var response = await Http.GetAsync("TrumpMessage");
+            if (response.IsSuccessStatusCode)
+            {
+                message = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Received message: {message}"); // Log received message
+                StateHasChanged(); // Notify component that state has changed
+            }
+            else
+            {
+                errorMessage = "No messages found or an error occurred.";
+                StateHasChanged(); // Notify component that state has changed
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            StateHasChanged(); // Notify component that state has changed
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged(); // Notify component that state has changed
+        }
+    }
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+}
