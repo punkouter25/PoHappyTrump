@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using PoHappyTrump.Services;
 using Serilog; // Added for Serilog
 using Microsoft.ApplicationInsights.Extensibility; // Added for Application Insights
+using Microsoft.Extensions.FileProviders; // Added for StaticFileOptions
+using System.IO; // Added for Path.Combine
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +14,6 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .WriteTo.Console()
     .WriteTo.File("log.txt", rollingInterval: RollingInterval.Infinite, fileSizeLimitBytes: null, retainedFileCountLimit: null) // Create new log.txt each run
-    .WriteTo.ApplicationInsights(new TelemetryConfiguration { ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"] }, TelemetryConverter.Traces)
     .CreateLogger();
 
 builder.Host.UseSerilog(); // Use Serilog for hosting
@@ -24,8 +25,8 @@ builder.Services.AddRazorComponents()
 // Add controllers
 builder.Services.AddControllers();
 
-// Add Application Insights services
-builder.Services.AddApplicationInsightsTelemetry();
+// Commented out Application Insights services for troubleshooting
+// builder.Services.AddApplicationInsightsTelemetry();
 
 // Add logging
 builder.Services.AddLogging(loggingBuilder =>
@@ -91,11 +92,16 @@ else
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.UseStaticFiles(); // Replaced MapStaticAssets with UseStaticFiles
+app.UseBlazorFrameworkFiles(); // Added for Blazor static files
+app.UseStaticFiles("/_content/PoHappyTrump.Client"); // Added for Blazor client static files
+
 
 // Map controllers
 app.MapControllers();
 
 app.MapRazorComponents<PoHappyTrump.Client.App>()
     .AddInteractiveWebAssemblyRenderMode();
+
+app.MapFallbackToFile("index.html"); // Added for Blazor fallback
 
 app.Run();

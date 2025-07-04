@@ -28,7 +28,9 @@ namespace PoHappyTrump.Services
             _logger = logger;
             _openAIDeploymentName = openAIDeploymentName;
             _openAIEndpoint = openAIEndpoint;
-            _openAIKey = openAIKey;            if (string.IsNullOrEmpty(openAIEndpoint) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(_openAIDeploymentName))
+            _openAIKey = openAIKey;
+            
+            if (string.IsNullOrEmpty(openAIEndpoint) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(_openAIDeploymentName))
             {
                 _logger.LogError("Azure OpenAI configuration is missing or incomplete.");
                 _openAIClient = null;
@@ -134,12 +136,12 @@ namespace PoHappyTrump.Services
                 {
                     Messages =
                     {
-                        new ChatMessage(ChatRole.System, "You are a helpful assistant. Rewrite the following text to make all negative words positive. Keep the original meaning as much as possible."),
-                        new ChatMessage(ChatRole.User, message)
+                        new ChatRequestSystemMessage("You are a helpful assistant. Rewrite the following text to make all negative words positive. Keep the original meaning as much as possible."),
+                        new ChatRequestUserMessage(message)
                     }
                 };
                 
-                var response = await _openAIClient.GetChatCompletionsAsync(_openAIDeploymentName, chatCompletionsOptions);
+                var response = await _openAIClient.GetChatCompletionsAsync(chatCompletionsOptions);
                 var positiveMessage = response.Value.Choices[0].Message.Content;
                 _logger.LogInformation("Successfully made message positive.");
                 return positiveMessage;
