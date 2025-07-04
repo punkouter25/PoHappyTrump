@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace PoHappyTrump.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class TrumpMessageController : ControllerBase
     {
         private readonly TrumpMessageService _trumpMessageService;

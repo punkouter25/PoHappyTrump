@@ -40,7 +40,7 @@ else if (!string.IsNullOrEmpty(message))
         try
         {
             // Use the injected HttpClient
-            var response = await Http.GetAsync("TrumpMessage");
+            var response = await Http.GetAsync("api/TrumpMessage");
             if (response.IsSuccessStatusCode)
             {
                 message = await response.Content.ReadAsStringAsync();

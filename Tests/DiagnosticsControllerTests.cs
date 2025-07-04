@@ -20,7 +20,9 @@ namespace PoHappyTrump.Tests
 
         public DiagnosticsControllerTests()
         {
-            _mockTrumpMessageService = new Mock<TrumpMessageService>(null, "", "", "", null); // Pass nulls for dependencies not needed for mocking
+            var mockHttpClientForService = new Mock<HttpClient>();
+            var mockLoggerForService = new Mock<ILogger<TrumpMessageService>>();
+            _mockTrumpMessageService = new Mock<TrumpMessageService>(mockHttpClientForService.Object, "", "", "", mockLoggerForService.Object);
             _mockHttpClient = new Mock<HttpClient>();
             _mockLogger = new Mock<ILogger<DiagnosticsController>>();
 
