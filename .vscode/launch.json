@@ -2,12 +2,35 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch and Debug",
+            "name": "Launch PoHappyTrump Server",
             "type": "coreclr",
             "request": "launch",
+            "preLaunchTask": "build",
             "program": "${workspaceFolder}/PoHappyTrump/bin/Debug/net8.0/PoHappyTrump.dll",
             "args": [],
             "cwd": "${workspaceFolder}/PoHappyTrump",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": "Launch PoHappyTrump Server (Watch)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "watch",
+            "program": "${workspaceFolder}/PoHappyTrump/bin/Debug/net8.0/PoHappyTrump.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/PoHappyTrump",
+            "console": "internalConsole",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",

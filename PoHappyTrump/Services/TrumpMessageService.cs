@@ -5,8 +5,6 @@ using System.Net.Http;
 using System.ServiceModel.Syndication;
 using System.Threading.Tasks;
 using System.Xml;
-using Azure;
-using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -15,10 +13,6 @@ namespace PoHappyTrump.Services
     public class TrumpMessageService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _openAIEndpoint;
-        private readonly string _openAIKey;
-        private readonly string _openAIDeploymentName;
-        private readonly OpenAIClient? _openAIClient;
         private readonly ILogger<TrumpMessageService> _logger;
         private const string RssFeedUrl = "https://www.trumpstruth.org/feed";
 
@@ -26,41 +20,8 @@ namespace PoHappyTrump.Services
         {
             _httpClient = httpClient;
             _logger = logger;
-            _openAIDeploymentName = openAIDeploymentName;
-            _openAIEndpoint = openAIEndpoint;
-            _openAIKey = openAIKey;
-            
-            if (string.IsNullOrEmpty(openAIEndpoint) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(_openAIDeploymentName))
-            {
-                _logger.LogError("Azure OpenAI configuration is missing or incomplete.");
-                _openAIClient = null;
-            }
-            else
-            {
-                try 
-                {
-                    // Ensure the endpoint is a valid URI with http or https scheme
-                    var uri = openAIEndpoint;
-                    if (!uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
-                        !uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                    {
-                        uri = "https://" + uri;
-                    }
-                    
-                    _logger.LogInformation("Initializing OpenAI client with URI: {Uri}", uri);
-                    _openAIClient = new OpenAIClient(new Uri(uri), new AzureKeyCredential(openAIKey));
-                }
-                catch (UriFormatException)
-                {
-                    _logger.LogError("Invalid OpenAI endpoint URI format: {Uri}", openAIEndpoint);
-                    _openAIClient = null;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to create OpenAI client with endpoint {Endpoint}", openAIEndpoint);
-                    _openAIClient = null;
-                }
-            }
+            // OpenAI functionality is disabled due to persistent build issues with Azure.AI.OpenAI package.
+            // The parameters openAIEndpoint, openAIKey, and openAIDeploymentName are currently unused.
         }
 
         public async Task<List<string>> GetFilteredMessagesAsync()
@@ -86,7 +47,7 @@ namespace PoHappyTrump.Services
                             _logger.LogDebug("  Summary: '{Summary}'", item.Summary?.Text);
                             _logger.LogDebug("  Content: '{Content}'", item.Content?.ToString());
 
-                            var messageContent = item.Summary?.Text ?? item.Content?.ToString();
+                            var messageContent = item.Summary?.Text ?? (item.Content as TextSyndicationContent)?.Text;
 
                             if (!string.IsNullOrEmpty(messageContent))
                             {
@@ -121,36 +82,11 @@ namespace PoHappyTrump.Services
             }
 
             return messages;
-        }        public async Task<string> MakeMessagePositiveAsync(string message)
+        }        
+        public async Task<string> MakeMessagePositiveAsync(string message)
         {
-            _logger.LogInformation("Attempting to make message positive using Azure OpenAI.");
-            if (_openAIClient is null)
-            {
-                _logger.LogWarning("Azure OpenAI client is not initialized. Cannot make message positive.");
-                return $"{message}\n\n[Note: This message was not transformed by Azure OpenAI because the service is not configured.]";
-            }
-            
-            try
-            {
-                var chatCompletionsOptions = new ChatCompletionsOptions
-                {
-                    Messages =
-                    {
-                        new ChatRequestSystemMessage("You are a helpful assistant. Rewrite the following text to make all negative words positive. Keep the original meaning as much as possible."),
-                        new ChatRequestUserMessage(message)
-                    }
-                };
-                
-                var response = await _openAIClient.GetChatCompletionsAsync(chatCompletionsOptions);
-                var positiveMessage = response.Value.Choices[0].Message.Content;
-                _logger.LogInformation("Successfully made message positive.");
-                return positiveMessage;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calling Azure OpenAI chat API. Returning original message.");
-                return message;
-            }
+            _logger.LogWarning("Azure OpenAI client is not initialized. Cannot make message positive.");
+            return $"{message}\n\n[Note: This message was not transformed by Azure OpenAI because the service is not configured.]";
         }
 
         public async Task<string?> GetRandomPositiveMessageAsync()
@@ -169,10 +105,8 @@ namespace PoHappyTrump.Services
             var randomMessage = messages[randomIndex];
             _logger.LogInformation("Selected random message for positivity transformation.");
 
-            var positiveMessage = await MakeMessagePositiveAsync(randomMessage);
-
-            _logger.LogInformation("Finished getting random positive message.");
-            return positiveMessage;
+            // OpenAI functionality is disabled, so return the original message
+            return await Task.FromResult(randomMessage);
         }
     }
 }

@@ -11,7 +11,11 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "publish",
@@ -33,9 +37,11 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/Server/PoHappyTrump.Server.csproj"
+                "${workspaceFolder}/PoHappyTrump/PoHappyTrump.csproj"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "isBackground": true,
+            "group": "build"
         },
         {
             "label": "clean",

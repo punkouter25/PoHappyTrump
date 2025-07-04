@@ -1,0 +1,70 @@
+/* MAGA 2024 Theme */
+
+:root {
+    /* Primary colors */
+    --rz-primary: #E4002B; /* Red */
+    --rz-primary-dark: #B00022;
+    --rz-primary-light: #FF3355;
+
+    /* Secondary colors */
+    --rz-secondary: #0A3161; /* Dark Blue */
+    --rz-secondary-dark: #072244;
+    --rz-secondary-light: #0E4488;
+
+    /* Text colors */
+    --rz-text-color: #FFFFFF; /* White */
+    --rz-text-color-dark: #CCCCCC;
+
+    /* Accent/Gold */
+    --rz-yellow: #FFD700; /* Gold */
+    --rz-yellow-dark: #CCAA00;
+
+    /* Backgrounds */
+    --rz-background-color: #333333; /* Dark grey for contrast */
+    --rz-base-background-color: #222222;
+}
+
+/* General adjustments for a darker theme with MAGA colors */
+body {
+    background-color: var(--rz-base-background-color) !important;
+    color: var(--rz-text-color) !important;
+}
+
+/* Radzen component overrides */
+.rz-button {
+    background-color: var(--rz-primary) !important;
+    color: var(--rz-text-color) !important;
+    border-color: var(--rz-primary-dark) !important;
+}
+
+.rz-button:hover {
+    background-color: var(--rz-primary-dark) !important;
+}
+
+.rz-datagrid-header {
+    background-color: var(--rz-secondary) !important;
+    color: var(--rz-text-color) !important;
+}
+
+.rz-datagrid-table {
+    background-color: var(--rz-background-color) !important;
+    color: var(--rz-text-color) !important;
+}
+
+/* Override Bootstrap and other conflicting styles */
+.btn-primary {
+    background-color: var(--rz-primary) !important;
+    border-color: var(--rz-primary-dark) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--rz-primary-dark) !important;
+    border-color: var(--rz-primary-dark) !important;
+}
+
+/* Force page background */
+html {
+    background-color: var(--rz-base-background-color) !important;
+}
+
+/* You might need more specific overrides depending on the components used */

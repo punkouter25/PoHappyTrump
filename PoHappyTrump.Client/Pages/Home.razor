@@ -1,28 +1,32 @@
 @page "/"
 
-<PageTitle>PoHappyTrump</PageTitle>
+<PageTitle>PoHappyTrump - Make America Great Again!</PageTitle>
 
-<h1>Trump's Positive Message Generator</h1>
+<RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-p-4">
+    <RadzenText Text="Make America Great Again!" TextStyle="TextStyle.H1" TagName="TagName.H1" Class="rz-text-center" />
+    <RadzenText Text="Click the button below to get a positive message!" TextStyle="TextStyle.Subtitle1" TagName="TagName.P" Class="rz-text-center" />
 
-<p>Click the button below to get a positive Trump message, transformed by Azure OpenAI!</p>
+    <RadzenButton Text="Get Positive Message" Click="GetMessage" IsLoading="@isLoading" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Filled" Size="ButtonSize.Large" />
 
-<button @onclick="GetMessage" disabled="@isLoading">Get Positive Message</button>
-
-@if (isLoading)
-{
-    <p>Loading...</p>
-}
-else if (!string.IsNullOrEmpty(errorMessage))
-{
-    <p style="color:red">@errorMessage</p>
-}
-else if (!string.IsNullOrEmpty(message))
-{
-    <div style="margin-top:1em; padding:1em; border:1px solid #ccc; border-radius:8px; background:#f9f9f9;">
-        <strong>Positive Message:</strong>
-        <p>@(new MarkupString(message))</p>
-    </div>
-}
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Class="rz-mt-4" />
+        <RadzenText Text="Loading..." TextStyle="TextStyle.Body1" TagName="TagName.P" />
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4" Style="background-color: var(--rz-error-light); color: var(--rz-error-dark);">
+            <RadzenText Text="@errorMessage" TextStyle="TextStyle.Body1" TagName="TagName.P" />
+        </RadzenCard>
+    }
+    else if (!string.IsNullOrEmpty(message))
+    {
+        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4" Style="width: 100%; max-width: 600px;">
+            <RadzenText Text="Positive Message:" TextStyle="TextStyle.H6" TagName="TagName.H6" />
+            <RadzenText Text="@message" TextStyle="TextStyle.Body1" TagName="TagName.P" />
+        </RadzenCard>
+    }
+</RadzenStack>
 
 @code {
     private string? message;

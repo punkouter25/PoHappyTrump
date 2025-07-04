@@ -1,15 +1,18 @@
+/* Import MAGA Theme */
+@import url('css/maga-theme.css');
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 a, .btn-link {
-    color: #e52b50; /* Red */
+    color: var(--rz-primary); /* Use MAGA theme red */
 }
 
 .btn-primary {
-    color: #ffffff; /* White */
-    background-color: #0047ab; /* Blue */
-    border-color: #002266; /* Darker Blue */
+    color: var(--rz-text-color); /* Use MAGA theme white */
+    background-color: var(--rz-primary); /* Use MAGA theme red */
+    border-color: var(--rz-primary-dark); /* Use MAGA theme dark red */
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {

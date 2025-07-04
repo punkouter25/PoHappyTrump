@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Moq.Protected; // Add this line
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Http;
@@ -14,7 +15,8 @@ namespace PoHappyTrump.Tests
     public class DiagnosticsControllerTests
     {
         private readonly Mock<TrumpMessageService> _mockTrumpMessageService;
-        private readonly Mock<HttpClient> _mockHttpClient;
+        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
+        private readonly HttpClient _httpClient;
         private readonly Mock<ILogger<DiagnosticsController>> _mockLogger;
         private readonly DiagnosticsController _controller;
 
@@ -23,12 +25,14 @@ namespace PoHappyTrump.Tests
             var mockHttpClientForService = new Mock<HttpClient>();
             var mockLoggerForService = new Mock<ILogger<TrumpMessageService>>();
             _mockTrumpMessageService = new Mock<TrumpMessageService>(mockHttpClientForService.Object, "", "", "", mockLoggerForService.Object);
-            _mockHttpClient = new Mock<HttpClient>();
+            
+            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
             _mockLogger = new Mock<ILogger<DiagnosticsController>>();
 
             _controller = new DiagnosticsController(
                 _mockTrumpMessageService.Object,
-                _mockHttpClient.Object,
+                _httpClient,
                 _mockLogger.Object
             );
         }
@@ -37,7 +41,12 @@ namespace PoHappyTrump.Tests
         public async Task RunDiagnostics_ReturnsListOfDiagnosticResults()
         {
             // Arrange - Setup mock HttpClient to return success for the internet check
-            _mockHttpClient.Setup(client => client.GetAsync(It.IsAny<string>(), HttpCompletionOption.ResponseHeadersRead, It.IsAny<CancellationToken>()))
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
                 .ReturnsAsync(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
 
             // Act
@@ -102,7 +111,12 @@ namespace PoHappyTrump.Tests
         public async Task RunDiagnostics_IncludesInternetConnectionCheck_Success()
         {
             // Arrange - Setup mock HttpClient to return success for the internet check
-            _mockHttpClient.Setup(client => client.GetAsync(It.IsAny<string>(), HttpCompletionOption.ResponseHeadersRead, It.IsAny<CancellationToken>()))
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
                 .ReturnsAsync(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
 
             // Act
@@ -119,7 +133,12 @@ namespace PoHappyTrump.Tests
         public async Task RunDiagnostics_IncludesInternetConnectionCheck_Failure()
         {
             // Arrange - Setup mock HttpClient to return failure for the internet check
-            _mockHttpClient.Setup(client => client.GetAsync(It.IsAny<string>(), HttpCompletionOption.ResponseHeadersRead, It.IsAny<CancellationToken>()))
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
                 .ThrowsAsync(new HttpRequestException("Simulated network error"));
 
             // Act
