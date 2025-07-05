@@ -25,6 +25,17 @@ builder.Services.AddRazorComponents()
 // Add controllers
 builder.Services.AddControllers();
 
+// Add CORS for Blazor WebAssembly
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Commented out Application Insights services for troubleshooting
 // builder.Services.AddApplicationInsightsTelemetry();
 
@@ -90,10 +101,13 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// Use CORS
+app.UseCors();
+
 app.UseAntiforgery();
-app.UseStaticFiles(); // Replaced MapStaticAssets with UseStaticFiles
-app.UseBlazorFrameworkFiles(); // Added for Blazor static files
-app.UseStaticFiles("/_content/PoHappyTrump.Client"); // Added for Blazor client static files
+app.UseBlazorFrameworkFiles(); // For Blazor WebAssembly static files
+app.UseStaticFiles(); // For serving client static files
 
 
 // Map controllers

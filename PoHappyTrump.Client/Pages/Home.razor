@@ -1,4 +1,5 @@
 @page "/"
+@using System.Linq
 
 <PageTitle>PoHappyTrump - Make America Great Again!</PageTitle>
 
@@ -41,31 +42,42 @@
         isLoading = true;
         errorMessage = null;
         message = null;
+        StateHasChanged(); // Update UI to show loading state
+        
         try
         {
-            // Use the injected HttpClient
-            var response = await Http.GetAsync("api/TrumpMessage");
+            // Log the base address and full URL
+            var baseAddress = Http.BaseAddress?.ToString() ?? "Unknown";
+            var apiUrl = "api/TrumpMessage";
+            Console.WriteLine($"HttpClient BaseAddress: {baseAddress}");
+            Console.WriteLine($"API URL: {apiUrl}");
+            Console.WriteLine($"Full URL: {new Uri(Http.BaseAddress, apiUrl)}");
+            
+            var response = await Http.GetAsync(apiUrl);
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+            Console.WriteLine($"Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
+            
             if (response.IsSuccessStatusCode)
             {
                 message = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Received message: {message}"); // Log received message
-                StateHasChanged(); // Notify component that state has changed
+                Console.WriteLine($"Received message: {message}");
             }
             else
             {
-                errorMessage = "No messages found or an error occurred.";
-                StateHasChanged(); // Notify component that state has changed
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"API call failed with status: {response.StatusCode}. Response: {errorContent}";
+                Console.WriteLine($"API call failed: {response.StatusCode}, Content: {errorContent}");
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Error: {ex.Message}";
-            StateHasChanged(); // Notify component that state has changed
+            Console.WriteLine($"Exception occurred: {ex}");
         }
         finally
         {
             isLoading = false;
-            StateHasChanged(); // Notify component that state has changed
+            StateHasChanged(); // Update UI to hide loading state
         }
     }
 
