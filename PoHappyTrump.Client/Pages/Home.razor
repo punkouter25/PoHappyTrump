@@ -1,5 +1,7 @@
 @page "/"
 @using System.Linq
+@inject ILogger<Home> Logger
+@inject IJSRuntime JSRuntime
 
 <PageTitle>PoHappyTrump - Make America Great Again!</PageTitle>
 
@@ -22,9 +24,12 @@
     }
     else if (!string.IsNullOrEmpty(message))
     {
-        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4" Style="width: 100%; max-width: 600px;">
-            <RadzenText Text="Positive Message:" TextStyle="TextStyle.H6" TagName="TagName.H6" />
-            <RadzenText Text="@message" TextStyle="TextStyle.Body1" TagName="TagName.P" />
+        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4 card-fade-in" Style="width: 100%; max-width: 600px;">
+            <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
+                <RadzenText Text="Positive Message:" TextStyle="TextStyle.H6" TagName="TagName.H6" />
+                <RadzenText Text="@message" TextStyle="TextStyle.Body1" TagName="TagName.P" />
+                <RadzenButton Icon="content_copy" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Flat" Size="ButtonSize.Small" Click="() => CopyToClipboard(message)" />
+            </RadzenStack>
         </RadzenCard>
     }
 </RadzenStack>
@@ -43,42 +48,41 @@
         errorMessage = null;
         message = null;
         StateHasChanged(); // Update UI to show loading state
-        
+
         try
         {
-            // Log the base address and full URL
-            var baseAddress = Http.BaseAddress?.ToString() ?? "Unknown";
             var apiUrl = "api/TrumpMessage";
-            Console.WriteLine($"HttpClient BaseAddress: {baseAddress}");
-            Console.WriteLine($"API URL: {apiUrl}");
-            Console.WriteLine($"Full URL: {new Uri(Http.BaseAddress, apiUrl)}");
-            
+            Logger.LogInformation("Fetching message from {ApiUrl}", apiUrl);
+
             var response = await Http.GetAsync(apiUrl);
-            Console.WriteLine($"Response Status: {response.StatusCode}");
-            Console.WriteLine($"Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 message = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Received message: {message}");
+                Logger.LogInformation("Received message: {Message}", message);
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"API call failed with status: {response.StatusCode}. Response: {errorContent}";
-                Console.WriteLine($"API call failed: {response.StatusCode}, Content: {errorContent}");
+                Logger.LogError("API call failed with status: {StatusCode}. Response: {ErrorContent}", response.StatusCode, errorContent);
+                errorMessage = "Sorry, we couldn't fetch a message right now. Please try again later.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
-            Console.WriteLine($"Exception occurred: {ex}");
+            Logger.LogError(ex, "An unexpected error occurred while fetching the message.");
+            errorMessage = "An unexpected error occurred. Please check the logs for more details.";
         }
         finally
         {
             isLoading = false;
             StateHasChanged(); // Update UI to hide loading state
         }
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
     }
 
     [Inject] NavigationManager NavigationManager { get; set; } = default!;

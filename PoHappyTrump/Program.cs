@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using PoHappyTrump.Services;
 using Serilog; // Added for Serilog
-using Microsoft.ApplicationInsights.Extensibility; // Added for Application Insights
 using Microsoft.Extensions.FileProviders; // Added for StaticFileOptions
 using System.IO; // Added for Path.Combine
+using PoHappyTrump.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,32 +56,12 @@ builder.Services.AddHttpClient<TrumpMessageService>()
 // Add HttpClient for diagnostics
 builder.Services.AddHttpClient();
 
-// Register TrumpMessageService with configuration and logging
-builder.Services.AddScoped<TrumpMessageService>(sp =>
-{
-    var httpClient = sp.GetRequiredService<HttpClient>(); // This will now be the configured HttpClient
-    var config = sp.GetRequiredService<IConfiguration>();
-    var logger = sp.GetRequiredService<ILogger<TrumpMessageService>>();
-    
-    // Try to get values from configuration
-    var endpoint = config["AzureOpenAI:Endpoint"];
-    var key = config["AzureOpenAI:Key"];
-    var deployment = config["AzureOpenAI:DeploymentName"] ?? "gpt-35-turbo";
-    
-    // Check if we have valid Azure OpenAI configuration
-    if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key))
-    {
-        logger.LogWarning("Azure OpenAI configuration is missing. Using fallback mode without OpenAI transformation.");
-        endpoint = "https://fallback.openai.azure.com"; // This is just a placeholder
-        key = "fallback-key"; // This is just a placeholder
-    }
-    else
-    {
-        logger.LogInformation("Using Azure OpenAI configuration: Endpoint={Endpoint}, DeploymentName={DeploymentName}", endpoint, deployment);
-    }
-    
-    return new TrumpMessageService(httpClient, endpoint, key, deployment, logger);
-});
+// Configure the Options pattern for TrumpMessageSettings
+builder.Services.Configure<TrumpMessageSettings>(builder.Configuration.GetSection(TrumpMessageSettings.SectionName));
+
+// Register the services
+builder.Services.AddScoped<IOpenAiTransformationService, OpenAiTransformationService>();
+builder.Services.AddScoped<TrumpMessageService>();
 
 var app = builder.Build();
 

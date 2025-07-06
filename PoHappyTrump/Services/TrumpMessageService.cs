@@ -5,11 +5,9 @@ using System.Net.Http;
 using System.ServiceModel.Syndication;
 using System.Threading.Tasks;
 using System.Xml;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Azure.AI.OpenAI;
-using Azure;
-using System.ClientModel;
+using Microsoft.Extensions.Options;
+using PoHappyTrump.Models;
 
 namespace PoHappyTrump.Services
 {
@@ -17,50 +15,30 @@ namespace PoHappyTrump.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<TrumpMessageService> _logger;
-        private readonly AzureOpenAIClient? _openAIClient;
-        private readonly string _deploymentName;
-        private readonly bool _openAIConfigured;
-        private const string RssFeedUrl = "https://www.trumpstruth.org/feed";
+        private readonly IOpenAiTransformationService _openAiTransformationService;
+        private readonly TrumpMessageSettings _settings;
+        private static readonly Random _random = new Random();
 
-        public TrumpMessageService(HttpClient httpClient, string openAIEndpoint, string openAIKey, string openAIDeploymentName, ILogger<TrumpMessageService> logger)
+        public TrumpMessageService(
+            HttpClient httpClient,
+            ILogger<TrumpMessageService> logger,
+            IOptions<TrumpMessageSettings> settings,
+            IOpenAiTransformationService openAiTransformationService)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _deploymentName = openAIDeploymentName;
-
-            // Check if Azure OpenAI is properly configured
-            if (!string.IsNullOrEmpty(openAIEndpoint) && !string.IsNullOrEmpty(openAIKey) && 
-                openAIEndpoint != "https://fallback.openai.azure.com" && openAIKey != "fallback-key")
-            {
-                try
-                {
-                    _openAIClient = new AzureOpenAIClient(new Uri(openAIEndpoint), new ApiKeyCredential(openAIKey));
-                    _openAIConfigured = true;
-                    _logger.LogInformation("Azure OpenAI client initialized successfully.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to initialize Azure OpenAI client. Falling back to non-transformed messages.");
-                    _openAIClient = null;
-                    _openAIConfigured = false;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Azure OpenAI configuration is missing or using fallback values. OpenAI transformation disabled.");
-                _openAIClient = null;
-                _openAIConfigured = false;
-            }
+            _settings = settings.Value;
+            _openAiTransformationService = openAiTransformationService;
         }
 
         public async Task<List<string>> GetFilteredMessagesAsync()
         {
-            _logger.LogInformation("Fetching and filtering messages from RSS feed: {RssFeedUrl}", RssFeedUrl);
+            _logger.LogInformation("Fetching and filtering messages from RSS feed: {RssFeedUrl}", _settings.RssFeedUrl);
             var messages = new List<string>();
 
             try
             {
-                var feedXml = await _httpClient.GetStringAsync(RssFeedUrl);
+                var feedXml = await _httpClient.GetStringAsync(_settings.RssFeedUrl);
                 _logger.LogInformation("Successfully fetched RSS feed content.");
 
                 using (var reader = XmlReader.Create(new System.IO.StringReader(feedXml)))
@@ -111,43 +89,6 @@ namespace PoHappyTrump.Services
             }
 
             return messages;
-        }        
-        public async Task<string> MakeMessagePositiveAsync(string message)
-        {
-            if (!_openAIConfigured || _openAIClient == null)
-            {
-                _logger.LogWarning("Azure OpenAI client is not initialized. Cannot transform message sentiment.");
-                return $"{message}\n\n[Note: This message was not transformed by Azure OpenAI because the service is not configured.]";
-            }
-
-            try
-            {
-                _logger.LogInformation("Transforming message to positive sentiment using Azure OpenAI.");
-                
-                var chatClient = _openAIClient.GetChatClient(_deploymentName);
-                
-                var systemPrompt = "You are a helpful AI assistant that transforms messages to have a positive, uplifting sentiment while maintaining the core message. Make the tone happy, optimistic, and encouraging. Keep the response concise and natural.";
-                var userPrompt = $"Transform this message to have a positive, happy sentiment: {message}";
-
-                var response = await chatClient.CompleteChatAsync(systemPrompt, userPrompt);
-                
-                if (response?.Value?.Content?.Count > 0)
-                {
-                    var transformedMessage = response.Value.Content[0].Text;
-                    _logger.LogInformation("Successfully transformed message using Azure OpenAI.");
-                    return transformedMessage ?? message;
-                }
-                else
-                {
-                    _logger.LogWarning("Azure OpenAI returned no content. Returning original message.");
-                    return message;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calling Azure OpenAI API. Returning original message.");
-                return $"{message}\n\n[Note: Message transformation failed - {ex.Message}]";
-            }
         }
 
         public async Task<string?> GetRandomPositiveMessageAsync()
@@ -161,13 +102,12 @@ namespace PoHappyTrump.Services
                 return null;
             }
 
-            var random = new Random();
-            var randomIndex = random.Next(0, messages.Count);
+            var randomIndex = _random.Next(0, messages.Count);
             var randomMessage = messages[randomIndex];
             _logger.LogInformation("Selected random message for positivity transformation.");
 
             // Transform the message to positive sentiment using Azure OpenAI
-            return await MakeMessagePositiveAsync(randomMessage);
+            return await _openAiTransformationService.MakeMessagePositiveAsync(randomMessage);
         }
     }
 }
