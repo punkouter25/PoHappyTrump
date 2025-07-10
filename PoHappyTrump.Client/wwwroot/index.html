@@ -3,25 +3,66 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PoHappyTrump</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="description" content="Transform political messages into positive, uplifting content with PoHappyTrump" />
+    <meta name="theme-color" content="#E4002B" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PoHappyTrump" />
+    
+    <title>PoHappyTrump - Make America Great Again!</title>
     <base href="/" />
+    
+    <!-- Icons and Manifest -->
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="favicon.png" />
+    <link rel="manifest" href="manifest.json" />
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="_content/Radzen.Blazor/css/dark.css">
     <link rel="stylesheet" href="css/maga-theme.css">
     <link rel="stylesheet" href="app.css">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="_content/Radzen.Blazor/Radzen.Blazor.js" as="script">
+    <link rel="preload" href="_framework/blazor.webassembly.js" as="script">
 </head>
 
 <body>
-    <div id="app">Loading...</div>
+    <div id="app">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #222222; color: white; font-family: sans-serif;">
+            <div style="font-size: 2rem; margin-bottom: 1rem; color: #E4002B;">🇺🇸</div>
+            <div style="font-size: 1.5rem; margin-bottom: 1rem; text-align: center;">PoHappyTrump</div>
+            <div style="font-size: 1rem; margin-bottom: 2rem; text-align: center; opacity: 0.8;">Loading awesome content...</div>
+            <div style="width: 50px; height: 50px; border: 3px solid #E4002B; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+        <div style="background: #dc3545; color: white; padding: 1rem; text-align: center; font-family: sans-serif;">
+            <strong>An unhandled error has occurred.</strong>
+            <br />
+            <a href="" class="reload" style="color: white; text-decoration: underline;">Reload</a>
+            <a class="dismiss" style="float: right; color: white; cursor: pointer; font-size: 1.2rem;">🗙</a>
+        </div>
     </div>
+    
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    
+    <!-- Service Worker Registration for PWA capabilities -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
 </body>
 
 </html>

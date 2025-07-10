@@ -60,8 +60,9 @@ builder.Services.AddHttpClient();
 builder.Services.Configure<TrumpMessageSettings>(builder.Configuration.GetSection(TrumpMessageSettings.SectionName));
 
 // Register the services
-builder.Services.AddScoped<IOpenAiTransformationService, OpenAiTransformationService>();
-builder.Services.AddScoped<TrumpMessageService>();
+builder.Services.AddSingleton<IOpenAiTransformationService, OpenAiTransformationService>();
+builder.Services.AddSingleton<TrumpMessageService>();
+builder.Services.AddScoped<IOpenAiManagementService, OpenAiManagementService>();
 
 var app = builder.Build();
 
@@ -92,6 +93,9 @@ app.UseStaticFiles(); // For serving client static files
 
 // Map controllers
 app.MapControllers();
+
+// .NET 9: MapStaticAssets must be called before AddInteractiveWebAssemblyRenderMode to avoid static asset warnings (GoF: Template Method)
+app.MapStaticAssets();
 
 app.MapRazorComponents<PoHappyTrump.Client.App>()
     .AddInteractiveWebAssemblyRenderMode();

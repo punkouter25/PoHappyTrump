@@ -1,60 +1,129 @@
 @page "/diag"
 @using System.Net.Http
 @using System.Net.Http.Json
+@using Radzen
+@using Radzen.Blazor
+@using Microsoft.AspNetCore.Components
+@using PoHappyTrump.Client.Models
 
-<PageTitle>Diagnostics</PageTitle>
+<PageTitle>Diagnostics - PoHappyTrump</PageTitle>
 
-<h1>Diagnostics</h1>
+<div class="mobile-container">
+    <RadzenStack Orientation="Orientation.Vertical" Gap="1rem" Class="rz-p-4">
+        <RadzenText Text="🔧 System Diagnostics" TextStyle="TextStyle.H1" TagName="TagName.H1" Class="rz-text-center mobile-header" />
+        <RadzenText Text="Checking application dependencies and health status..." TextStyle="TextStyle.Subtitle1" TagName="TagName.P" Class="rz-text-center mobile-text" />
 
-<p>Checking application dependencies...</p>
-
-@if (diagnostics == null)
-{
-    <p>Loading diagnostics...</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Dependency</th>
-                <th>Status</th>
-                <th>Details</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var diag in diagnostics)
+        @if (diagnostics == null)
+        {
+            <div class="loading-container touch-spacing">
+                <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Class="rz-mt-4" />
+                <RadzenText Text="Loading diagnostics..." TextStyle="TextStyle.Body1" TagName="TagName.P" Class="mobile-text" />
+            </div>
+        }
+        else
+        {
+            @if (diagnostics != null && diagnostics.Any(d => !d.IsSuccessful))
             {
-                <tr>
-                    <td>@diag.CheckName</td>
-                    <td>
-                        @if (diag.IsSuccessful)
-                        {
-                            <span style="color: green;">Healthy</span>
-                        }
-                        else
-                        {
-                            <span style="color: red;">Unhealthy</span>
-                        }
-                    </td>
-                    <td>@diag.Details</td>
-                </tr>
+                <RadzenCard Variant="Variant.Filled" Class="rz-mt-4 mobile-card error-container" Style="background-color: var(--rz-error-light); color: var(--rz-error-dark);">
+                    <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
+                        <RadzenText Text="⚠️ Some dependencies are unhealthy!" TextStyle="TextStyle.H5" TagName="TagName.H5" Class="mobile-text" />
+                        <ul style="margin: 0; padding-left: 1.2rem;">
+                            @foreach (var diag in diagnostics.Where(d => !d.IsSuccessful))
+                            {
+                                <li class="mobile-text"><strong>@diag.CheckName:</strong> @diag.Details</li>
+                            }
+                        </ul>
+                    </RadzenStack>
+                </RadzenCard>
             }
-        </tbody>
-    </table>
-}
+            else
+            {
+                <RadzenCard Variant="Variant.Filled" Class="mobile-card success-container" Style="background-color: var(--rz-success-light); color: var(--rz-success-dark); text-align: center;">
+                    <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" AlignItems="AlignItems.Center">
+                        <RadzenText Text="✅ All Systems Healthy!" TextStyle="TextStyle.H5" TagName="TagName.H5" Class="mobile-text" />
+                        <RadzenText Text="All dependencies are running smoothly." TextStyle="TextStyle.Body1" TagName="TagName.P" Class="mobile-text" />
+                    </RadzenStack>
+                </RadzenCard>
+            }
 
-<div style="margin-top: 2em;">
-    <a href="/">Back to Home</a>
+            <!-- Mobile-responsive table -->
+            <RadzenCard Variant="Variant.Filled" Class="mobile-card">
+                <div class="table-responsive mobile-table">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th class="mobile-text">Dependency</th>
+                                <th class="mobile-text">Status</th>
+                                <th class="mobile-text">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var diag in diagnostics)
+                            {
+                                <tr>
+                                    <td class="mobile-text">
+                                        <strong>@diag.CheckName</strong>
+                                    </td>
+                                    <td class="mobile-text">
+                                        @if (diag.IsSuccessful)
+                                        {
+                                            <span style="color: #28a745; font-weight: bold;">✅ Healthy</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color: #dc3545; font-weight: bold;">❌ Unhealthy</span>
+                                        }
+                                    </td>
+                                    <td class="mobile-text" style="word-break: break-word;">
+                                        @diag.Details
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </RadzenCard>
+
+            <!-- Quick Actions for Diagnostics -->
+            <RadzenCard Variant="Variant.Filled" Class="mobile-card" Style="background-color: var(--rz-secondary); opacity: 0.9;">
+                <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" AlignItems="AlignItems.Center">
+                    <RadzenText Text="🔄 Quick Actions" TextStyle="TextStyle.H6" TagName="TagName.H6" Class="mobile-text" />
+                    <div class="responsive-grid">
+                        <RadzenButton Text="🔄 Refresh Diagnostics" 
+                                      Click="RefreshDiagnostics" 
+                                      ButtonStyle="ButtonStyle.Primary" 
+                                      Variant="Variant.Filled" 
+                                      Size="ButtonSize.Medium"
+                                      Class="mobile-button"
+                                      IsLoading="@isRefreshing" />
+                        <RadzenButton Text="🏠 Back to Home" 
+                                      Click="@(() => NavigationManager.NavigateTo("/"))" 
+                                      ButtonStyle="ButtonStyle.Secondary" 
+                                      Variant="Variant.Outlined" 
+                                      Size="ButtonSize.Medium"
+                                      Class="mobile-button" />
+                    </div>
+                </RadzenStack>
+            </RadzenCard>
+        }
+    </RadzenStack>
 </div>
 
 @inject HttpClient Http
+@inject NavigationManager NavigationManager
 
 @code {
     private List<DiagnosticResult>? diagnostics;
+    private bool isRefreshing = false;
 
     protected override async Task OnInitializedAsync()
-    {        try
+    {
+        await LoadDiagnostics();
+    }
+
+    private async Task LoadDiagnostics()
+    {
+        try
         {
             diagnostics = await Http.GetFromJsonAsync<List<DiagnosticResult>>("api/Diagnostics");
         }
@@ -65,12 +134,17 @@ else
             {
                 new DiagnosticResult { CheckName = "Diagnostic Service", IsSuccessful = false, Details = $"Error fetching diagnostics: {ex.Message}" }
             };
-        }    }
+        }
+    }
 
-    public class DiagnosticResult
+    private async Task RefreshDiagnostics()
     {
-        public string? CheckName { get; set; }
-        public bool IsSuccessful { get; set; }
-        public string? Details { get; set; }
+        isRefreshing = true;
+        StateHasChanged();
+        
+        await LoadDiagnostics();
+        
+        isRefreshing = false;
+        StateHasChanged();
     }
 }

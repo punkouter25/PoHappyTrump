@@ -18,6 +18,8 @@ namespace PoHappyTrump.Services
         private readonly IOpenAiTransformationService _openAiTransformationService;
         private readonly TrumpMessageSettings _settings;
         private static readonly Random _random = new Random();
+        private List<string>? _messages;
+        private readonly object _lock = new object();
 
         public TrumpMessageService(
             HttpClient httpClient,
@@ -31,8 +33,17 @@ namespace PoHappyTrump.Services
             _openAiTransformationService = openAiTransformationService;
         }
 
-        public async Task<List<string>> GetFilteredMessagesAsync()
+        private async Task<List<string>> GetOrFetchMessagesAsync()
         {
+            lock (_lock)
+            {
+                if (_messages != null)
+                {
+                    _logger.LogInformation("Returning cached messages.");
+                    return _messages;
+                }
+            }
+
             _logger.LogInformation("Fetching and filtering messages from RSS feed: {RssFeedUrl}", _settings.RssFeedUrl);
             var messages = new List<string>();
 
@@ -51,16 +62,12 @@ namespace PoHappyTrump.Services
                         foreach (var item in feed.Items)
                         {
                             _logger.LogDebug("Processing RSS item: Title='{Title}'", item.Title?.Text);
-                            _logger.LogDebug("  Summary: '{Summary}'", item.Summary?.Text);
-                            _logger.LogDebug("  Content: '{Content}'", item.Content?.ToString());
-
                             var messageContent = item.Summary?.Text ?? (item.Content as TextSyndicationContent)?.Text;
 
                             if (!string.IsNullOrEmpty(messageContent))
                             {
                                 var wordCount = messageContent.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
-
-                                if (wordCount >= 1) // Changed threshold from 10 to 1
+                                if (wordCount >= 1)
                                 {
                                     messages.Add(messageContent);
                                     _logger.LogDebug("Added message with {WordCount} words.", wordCount);
@@ -75,7 +82,7 @@ namespace PoHappyTrump.Services
                                 _logger.LogDebug("Skipped empty message content.");
                             }
                         }
-                        _logger.LogInformation("Finished processing RSS feed items. Found {MessageCount} messages with at least 1 word.", messages.Count); // Updated log message
+                        _logger.LogInformation("Finished processing RSS feed items. Found {MessageCount} messages with at least 1 word.", messages.Count);
                     }
                     else
                     {
@@ -85,7 +92,12 @@ namespace PoHappyTrump.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching or parsing RSS feed");
+                _logger.LogError(ex, "Error fetching or parsing RSS feed from {RssFeedUrl}", _settings.RssFeedUrl);
+            }
+
+            lock (_lock)
+            {
+                _messages = messages;
             }
 
             return messages;
@@ -94,20 +106,93 @@ namespace PoHappyTrump.Services
         public async Task<string?> GetRandomPositiveMessageAsync()
         {
             _logger.LogInformation("Getting a random positive message.");
-            var messages = await GetFilteredMessagesAsync();
 
-            if (messages == null || messages.Count == 0)
+            var messages = await GetOrFetchMessagesAsync();
+
+            if (messages.Count == 0)
             {
-                _logger.LogWarning("No filtered messages found.");
+                _logger.LogWarning("No messages found with at least 1 word.");
                 return null;
             }
 
-            var randomIndex = _random.Next(0, messages.Count);
+            var randomIndex = _random.Next(messages.Count);
             var randomMessage = messages[randomIndex];
+
             _logger.LogInformation("Selected random message for positivity transformation.");
 
-            // Transform the message to positive sentiment using Azure OpenAI
             return await _openAiTransformationService.MakeMessagePositiveAsync(randomMessage);
+        }
+
+        public async Task<string?> GetRandomOriginalMessageAsync()
+        {
+            _logger.LogInformation("Getting a random original message without transformation.");
+
+            var messages = await GetOrFetchMessagesAsync();
+
+            if (messages.Count == 0)
+            {
+                _logger.LogWarning("No messages found with at least 1 word.");
+                return null;
+            }
+
+            var randomIndex = _random.Next(messages.Count);
+            var randomMessage = messages[randomIndex];
+
+            _logger.LogInformation("Selected random original message.");
+
+            return randomMessage;
+        }
+
+        public async Task<MessageComparison?> GetMessageComparisonAsync()
+        {
+            _logger.LogInformation("Getting message comparison (original vs enhanced).");
+
+            var messages = await GetOrFetchMessagesAsync();
+
+            if (messages.Count == 0)
+            {
+                _logger.LogWarning("No messages found with at least 1 word.");
+                return null;
+            }
+
+            var randomIndex = _random.Next(messages.Count);
+            var originalMessage = messages[randomIndex];
+
+            _logger.LogInformation("Selected random message for comparison transformation.");
+
+            var enhancedMessage = await _openAiTransformationService.MakeMessagePositiveAsync(originalMessage);
+            
+            var (status, note) = DetermineTransformationStatus(enhancedMessage);
+            var wasTransformed = status == TransformationStatus.Success;
+
+            return new MessageComparison
+            {
+                OriginalMessage = originalMessage,
+                EnhancedMessage = enhancedMessage,
+                WasTransformed = wasTransformed,
+                TransformationNote = note,
+                Status = status
+            };
+        }
+
+        private (TransformationStatus status, string note) DetermineTransformationStatus(string enhancedMessage)
+        {
+            if (enhancedMessage.Contains("[Note: This message was not transformed by Azure OpenAI because the service is not configured.]"))
+            {
+                return (TransformationStatus.NotConfigured, "Azure OpenAI service not configured");
+            }
+            
+            if (enhancedMessage.Contains("[Note: Message transformation failed") && enhancedMessage.Contains("content_filter"))
+            {
+                return (TransformationStatus.ContentFiltered, "Content was filtered by Azure OpenAI content policy");
+            }
+            
+            if (enhancedMessage.Contains("[Note: Message transformation failed"))
+            {
+                return (TransformationStatus.ServiceError, "Transformation failed due to service error");
+            }
+            
+            return (TransformationStatus.Success, "Successfully transformed by Azure OpenAI");
         }
     }
 }

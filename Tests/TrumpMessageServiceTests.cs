@@ -5,6 +5,8 @@ using System.Net.Http.Headers; // Add this line
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using PoHappyTrump.Models;
 using Moq;
 using Moq.Protected; // Add this line
 using System.Threading.Tasks;
@@ -29,16 +31,28 @@ namespace PoHappyTrump.Tests
             _mockLogger = new Mock<ILogger<TrumpMessageService>>();
             
             // Setup configuration to return test values
-            _mockConfig.Setup(c => c.GetSection("AzureOpenAI:Endpoint").Value).Returns("https://test.openai.azure.com/");
-            _mockConfig.Setup(c => c.GetSection("AzureOpenAI:Key").Value).Returns("test-key");
-            _mockConfig.Setup(c => c.GetSection("AzureOpenAI:DeploymentName").Value).Returns("gpt-35-turbo");
+            var mockSettings = new Mock<IOptions<TrumpMessageSettings>>();
+            var settings = new TrumpMessageSettings
+            {
+                RssFeedUrl = TestRssFeedUrl,
+                AzureOpenAI = new AzureOpenAISettings
+                {
+                    Endpoint = "https://test.openai.azure.com/",
+                    ApiKey = "test-key",
+                    DeploymentName = "gpt-35-turbo"
+                }
+            };
+            mockSettings.Setup(x => x.Value).Returns(settings);
+
+            var mockOpenAiService = new Mock<IOpenAiTransformationService>();
+            mockOpenAiService.Setup(x => x.MakeMessagePositiveAsync(It.IsAny<string>()))
+                .ReturnsAsync((string msg) => $"{msg}\n\n[Note: This message was not transformed by Azure OpenAI because the service is not configured.]");
 
             _service = new TrumpMessageService(
                 _httpClient, 
-                _mockConfig.Object.GetSection("AzureOpenAI:Endpoint").Value ?? string.Empty,
-                _mockConfig.Object.GetSection("AzureOpenAI:Key").Value ?? string.Empty,
-                _mockConfig.Object.GetSection("AzureOpenAI:DeploymentName").Value ?? string.Empty,
-                _mockLogger.Object
+                _mockLogger.Object,
+                mockSettings.Object,
+                mockOpenAiService.Object
             );
         }
 
@@ -77,21 +91,6 @@ namespace PoHappyTrump.Tests
             Assert.Equal(2, result.Count); // Should have 2 messages with >= 1 word
             Assert.Contains("Short", result);
             Assert.Contains("This message has more than one word", result);
-        }
-
-        [Fact]
-        public async Task MakeMessagePositiveAsync_ReturnsMessageWithNote()
-        {
-            // Arrange
-            var originalMessage = "This is a test message";
-            
-            // Act
-            var result = await _service.MakeMessagePositiveAsync(originalMessage);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Contains(originalMessage, result); // Original message should be included
-            Assert.Contains("[Note: This message was not transformed by Azure OpenAI because the service is not configured.]", result);
         }
 
         [Fact]

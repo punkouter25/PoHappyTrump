@@ -3,25 +3,26 @@
 <RadzenLayout>
     <RadzenHeader>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0" Class="w-100">
-            <RadzenSidebarToggle />
-            <RadzenLabel Text="PoHappyTrump" />
+            <RadzenSidebarToggle Class="d-lg-none" />
+            <RadzenLabel Text="PoHappyTrump" Class="mobile-header" Style="margin-left: 1rem;" />
             <RadzenSpacer />
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0" Class="d-none d-lg-flex">
                 <RadzenButton Text="About" Link="https://learn.microsoft.com/aspnet/core/" Target="_blank" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
             </RadzenStack>
         </RadzenStack>
     </RadzenHeader>
-    <RadzenSidebar>
+    <RadzenSidebar Class="d-lg-block">
         <NavMenu />
     </RadzenSidebar>
     <RadzenBody>
-        <div class="rz-p-4">
+        <div class="rz-p-4 mobile-container">
             @Body
         </div>
     </RadzenBody>
     <RadzenFooter>
-        <div class="rz-text-center rz-p-2">
-            PoHappyTrump &copy; 2024
+        <div class="rz-text-center rz-p-2 mobile-text">
+            <span class="d-none d-md-inline">PoHappyTrump &copy; 2025 - Making America Great with Positivity!</span>
+            <span class="d-md-none">PoHappyTrump &copy; 2025</span>
         </div>
     </RadzenFooter>
 </RadzenLayout>

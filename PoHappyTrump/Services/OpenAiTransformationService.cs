@@ -82,6 +82,11 @@ namespace PoHappyTrump.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling Azure OpenAI API. Returning original message.");
+                // Detect content filter error for client feedback
+                if (ex.Message.Contains("content_filter"))
+                {
+                    return $"{message}\n\n[Note: Message transformation failed - content_filter: The response was filtered by Azure OpenAI's content management policy. See logs for details.]";
+                }
                 return $"{message}\n\n[Note: Message transformation failed - {ex.Message}]";
             }
         }

@@ -1,7 +1,9 @@
 using Xunit;
 using PoHappyTrump.Controllers;
 using PoHappyTrump.Services;
+using PoHappyTrump.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -24,7 +26,17 @@ namespace PoHappyTrump.Tests
         {
             var mockHttpClientForService = new Mock<HttpClient>();
             var mockLoggerForService = new Mock<ILogger<TrumpMessageService>>();
-            _mockTrumpMessageService = new Mock<TrumpMessageService>(mockHttpClientForService.Object, "", "", "", mockLoggerForService.Object);
+            var mockSettings = new Mock<IOptions<TrumpMessageSettings>>();
+            var mockOpenAiService = new Mock<IOpenAiTransformationService>();
+            
+            var settings = new TrumpMessageSettings { RssFeedUrl = "https://test.feed.com" };
+            mockSettings.Setup(x => x.Value).Returns(settings);
+            
+            _mockTrumpMessageService = new Mock<TrumpMessageService>(
+                mockHttpClientForService.Object, 
+                mockLoggerForService.Object,
+                mockSettings.Object,
+                mockOpenAiService.Object);
             
             _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_mockHttpMessageHandler.Object);

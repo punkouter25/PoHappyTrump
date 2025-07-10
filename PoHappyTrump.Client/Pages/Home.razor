@@ -1,38 +1,91 @@
 @page "/"
 @using System.Linq
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
 @inject ILogger<Home> Logger
 @inject IJSRuntime JSRuntime
 
 <PageTitle>PoHappyTrump - Make America Great Again!</PageTitle>
 
-<RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-p-4">
-    <RadzenText Text="Make America Great Again!" TextStyle="TextStyle.H1" TagName="TagName.H1" Class="rz-text-center" />
-    <RadzenText Text="Click the button below to get a positive message!" TextStyle="TextStyle.Subtitle1" TagName="TagName.P" Class="rz-text-center" />
+<div class="mobile-container">
+    <div style="text-align: center; padding: 1rem;">
+        <h1 class="mobile-header">Make America Great Again!</h1>
+        <p class="mobile-text">Click the button below to get a positive message!</p>
 
-    <RadzenButton Text="Get Positive Message" Click="GetMessage" IsLoading="@isLoading" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Filled" Size="ButtonSize.Large" />
+        <button @onclick="GetMessage" class="mobile-button touch-spacing" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span>Loading...</span>
+            }
+            else
+            {
+                <span>Get Positive Message</span>
+            }
+        </button>
 
-    @if (isLoading)
-    {
-        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Class="rz-mt-4" />
-        <RadzenText Text="Loading..." TextStyle="TextStyle.Body1" TagName="TagName.P" />
-    }
-    else if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4" Style="background-color: var(--rz-error-light); color: var(--rz-error-dark);">
-            <RadzenText Text="@errorMessage" TextStyle="TextStyle.Body1" TagName="TagName.P" />
-        </RadzenCard>
-    }
-    else if (!string.IsNullOrEmpty(message))
-    {
-        <RadzenCard Variant="Variant.Filled" Class="rz-mt-4 card-fade-in" Style="width: 100%; max-width: 600px;">
-            <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem">
-                <RadzenText Text="Positive Message:" TextStyle="TextStyle.H6" TagName="TagName.H6" />
-                <RadzenText Text="@message" TextStyle="TextStyle.Body1" TagName="TagName.P" />
-                <RadzenButton Icon="content_copy" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Flat" Size="ButtonSize.Small" Click="() => CopyToClipboard(message)" />
-            </RadzenStack>
-        </RadzenCard>
-    }
-</RadzenStack>
+        @if (isLoading)
+        {
+            <div class="loading-container touch-spacing">
+                <div class="loading-spinner">Loading...</div>
+                <p class="mobile-text">Loading awesome content...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="mobile-card error-container" style="background-color: #ffebee; color: #c62828; padding: 1rem; margin-top: 1rem; border-radius: 8px;">
+                <p class="mobile-text">@errorMessage</p>
+                <button @onclick="GetMessage" class="mobile-button touch-spacing" style="margin-top: 1rem;">
+                    Try Again
+                </button>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(message))
+        {
+            bool isContentFilter = message.Contains("[Note: Message transformation failed") && message.Contains("content_filter");
+            <div class="mobile-card success-container card-fade-in" style="width: 100%; max-width: 600px; background-color: #e8f5e8; color: #2e7d32; padding: 1rem; margin-top: 1rem; border-radius: 8px;">
+                <h6 class="mobile-text">🇺🇸 Positive Message:</h6>
+                <p class="mobile-text" style="word-break: break-word; hyphens: auto;">@message</p>
+                
+                <div class="responsive-grid touch-spacing">
+                    <button @onclick="() => CopyToClipboard(message)" class="mobile-button">
+                        📋 Copy Message
+                    </button>
+                    <button @onclick="GetMessage" class="mobile-button">
+                        Get Another
+                    </button>
+                </div>
+                
+                @if (isContentFilter)
+                {
+                    <div class="mobile-card" style="background-color: #fff3e0; color: #ef6c00; padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px;">
+                        <p class="mobile-text">⚠️ Some content was filtered by Azure OpenAI. The original message is shown instead. Please try again or rephrase your request.</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="mobile-card" style="background-color: #e3f2fd; color: #1565c0; text-align: center; padding: 1rem; margin-top: 1rem; border-radius: 8px;">
+                <h6 class="mobile-text">🚀 Welcome to PoHappyTrump!</h6>
+                <p class="mobile-text">Transform political messages into positive, uplifting content!</p>
+                <p class="mobile-text">Ready to spread some positivity? Click the button above!</p>
+            </div>
+        }
+        
+        <!-- Quick Actions Section -->
+        <div class="mobile-card" style="margin-top: 2rem; background-color: #f3e5f5; opacity: 0.9; padding: 1rem; border-radius: 8px;">
+            <h6 class="mobile-text">🔧 Quick Actions</h6>
+            <div class="responsive-grid">
+                <button @onclick="@(() => NavigationManager.NavigateTo("/diag"))" class="mobile-button">
+                    📊 View Diagnostics
+                </button>
+                <button @onclick="GetComparison" class="mobile-button">
+                    🔄 Compare Messages
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     private string? message;
@@ -47,19 +100,16 @@
         isLoading = true;
         errorMessage = null;
         message = null;
-        StateHasChanged(); // Update UI to show loading state
+        StateHasChanged();
 
         try
         {
             var apiUrl = "api/TrumpMessage";
-            Logger.LogInformation("Fetching message from {ApiUrl}", apiUrl);
-
             var response = await Http.GetAsync(apiUrl);
 
             if (response.IsSuccessStatusCode)
             {
                 message = await response.Content.ReadAsStringAsync();
-                Logger.LogInformation("Received message: {Message}", message);
             }
             else
             {
@@ -76,13 +126,56 @@
         finally
         {
             isLoading = false;
-            StateHasChanged(); // Update UI to hide loading state
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetComparison()
+    {
+        isLoading = true;
+        errorMessage = null;
+        message = null;
+        StateHasChanged();
+
+        try
+        {
+            var apiUrl = "api/TrumpMessage/compare";
+            var response = await Http.GetAsync(apiUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var comparison = await response.Content.ReadAsStringAsync();
+                message = $"📊 Message Comparison:\n\n{comparison}";
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Logger.LogError("API call failed with status: {StatusCode}. Response: {ErrorContent}", response.StatusCode, errorContent);
+                errorMessage = "Sorry, we couldn't fetch a comparison right now. Please try again later.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "An unexpected error occurred while fetching the comparison.");
+            errorMessage = "An unexpected error occurred. Please check the logs for more details.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
     private async Task CopyToClipboard(string text)
     {
-        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to copy text to clipboard");
+        }
     }
 
     [Inject] NavigationManager NavigationManager { get; set; } = default!;
